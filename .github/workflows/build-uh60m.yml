@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: 52e07697b2a207f6b0995dfe2980427645ac4a9d
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -46,4 +48,4 @@ jobs:
           cp -a "$RUNNER_TEMP/site/." .
           git add --all
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Publish UH-60M systems reference'
-          git push origin HEAD:refs/heads/publish/uh60m-systems-reference
+          git push origin HEAD:refs/heads/publish/uh60m-cockpit-pages
