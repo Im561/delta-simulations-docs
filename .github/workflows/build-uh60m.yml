@@ -1,59 +1,130 @@
-name: UH-60M aircraft systems directory
+name: H-60 simulator handbook publication
 on:
   push:
     branches: [build/uh60m-pages-release]
 permissions:
   contents: write
 jobs:
-  publish:
+  build:
     if: github.repository == 'Im561/delta-simulations-docs'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 154388281587663056efe93a880f59270a704f21
+          ref: 032a12060416180567ed15bcd709cdd15fd44ce2
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Build and check the directory
+      - name: Build documentation
         run: |
-          python -m pip install 'mkdocs==1.6.1' 'mkdocs-material==9.7.5' mkdocs-glightbox mkdocs-awesome-pages-plugin
+          python -m pip install 'mkdocs==1.6.1' 'mkdocs-material==9.7.5' mkdocs-glightbox mkdocs-awesome-pages-plugin beautifulsoup4
           python -m mkdocs build --site-dir "$RUNNER_TEMP/site"
+      - name: Preserve existing site and validate rendered guide
+        run: |
           git fetch --no-tags https://github.com/Delta-Simulations/delta-simulations-docs.git refs/heads/gh-pages
-          test "$(git rev-parse FETCH_HEAD)" = '4498ba92d876e61764f47d7acd92b68dc61f46ba'
+          test "$(git rev-parse FETCH_HEAD)" = 'd9503e5513d5a851e57a0753da23234d333cc763'
           git switch --detach FETCH_HEAD
           python - <<'PY'
-          import json, os, re, shutil
-          from html.parser import HTMLParser
+          import json, re, shutil, os
           from pathlib import Path
           from urllib.parse import unquote, urlsplit
-          site = Path(os.environ['RUNNER_TEMP'])/'site'
-          target = Path('UH-60M/MFD/index.html')
-          article = re.search(r'<article\b[^>]*>.*?</article>',(site/target).read_text(),re.S)[0]
-          class Links(HTMLParser):
-              def handle_starttag(self, tag, attrs):
-                  if tag == 'a':
-                      links.append(dict(attrs)['href'])
-          links = []
-          Links().feed(article)
-          local = [unquote(urlsplit(h).path) for h in links if h and not urlsplit(h).scheme]
-          assert len(set(local)) >= 24, local
-          for href in local:
-              assert (target.parent/href/'index.html').is_file(), href
-          assert 'Coming Soon' not in article and 'full UH-60M Pilot Handbook' in article
-          search = Path('search/search_index.json')
-          new_index = json.loads((site/search).read_text())
-          old_index = json.loads(search.read_text())
-          here = lambda d: d['location'].split('#')[0].rstrip('/') == 'UH-60M/MFD'
-          entries = [d for d in new_index['docs'] if here(d)]
-          assert entries and any('boost pumps' in d['text'].lower() for d in entries)
-          pos = next(i for i,d in enumerate(old_index['docs']) if here(d))
-          old_index['docs'] = [d for d in old_index['docs'] if not here(d)]
-          old_index['docs'][pos:pos] = entries
-          search.write_text(json.dumps(old_index,ensure_ascii=False,separators=(',',':')))
-          shutil.copyfile(site/target,target)
-          print(f'{len(set(local))} distinct links checked against published files')
+          from bs4 import BeautifulSoup
+          out = Path(os.environ['RUNNER_TEMP'])/'site'
+          root = Path.cwd()
+          changed = set(["UH-60M/pilot-handbook/communications-and-navigation/com-radios-and-audio/index.html","UH-60M/pilot-handbook/communications-and-navigation/navigation-receivers-and-transponder/index.html","UH-60M/pilot-handbook/flight-displays/flight-director-and-mode-selectors/index.html","UH-60M/pilot-handbook/flight-displays/data-transfer-and-aircraft-status/index.html","UH-60M/pilot-handbook/flight-displays/crew-alerts-and-test-indications/index.html","UH-60M/pilot-handbook/communications-and-navigation/moving-map-and-route-entry/index.html","UH-60M/pilot-handbook/flight-displays/head-up-display-and-hover-cue/index.html","UH-60M/pilot-handbook/power-and-fuel/bleed-air-and-ground-power/index.html","UH-60M/pilot-handbook/airframe-and-instruments/rotor-brake-and-rundown/index.html","UH-60M/pilot-handbook/flight-deck/departure-cruise-and-arrival/index.html","UH-60M/pilot-handbook/flight-planning/weather-visibility-and-terrain/index.html","UH-60M/pilot-handbook/flight-planning/aircraft-limits-and-reference-speeds/index.html","UH-60M/Home/index.html","UH-60M/Aircraft and Systems/Multi Function Display/index.html","UH-60M/Aircraft and Systems/Display Systems/index.html","UH-60M/Aircraft and Systems/Simulated_Variants/index.html","faq/index.html","UH-60M/pilot-handbook/controls-and-lighting/helicopter-controller-profiles/index.html","UH-60M/pilot-handbook/controls-and-lighting/axis-calibration-and-troubleshooting/index.html","UH-60M/pilot-handbook/controls-and-lighting/rotor-trim-and-flight-assistance/index.html","UH-60M/pilot-handbook/controls-and-lighting/cockpit-and-cabin-lighting/index.html","UH-60M/pilot-handbook/controls-and-lighting/exterior-lights-and-searchlight/index.html","UH-60M/pilot-handbook/controls-and-lighting/pilot-seats-and-instrument-views/index.html","UH-60M/pilot-handbook/index.html","UH-60M/MFD/index.html","UH-60M/Aircraft and Systems/Manual Reference/index.html","UH-60M/Aircraft and Systems/Flight Controls/index.html","UH-60M/Aircraft and Systems/Powerplant and Fuel/index.html","UH-60M/Aircraft and Systems/Electrical and Hydraulic Systems/index.html","UH-60M/Aircraft and Systems/Utility and Mission Equipment/index.html","UH-60M/Procedures/Landing/index.html","UH-60M/Procedures/Parking and Shutdown/index.html","UH-60M/Procedures/Starting Engines/index.html","UH-60M/Procedures/Cockpit Equipment Checks/index.html","UH-60M/Procedures/Before_Start/index.html","UH-60M/Procedures/Quick Start Guide/index.html","UH-60M/Keybinds_Guide/index.html"])
+          article = re.compile(r'<article\b[^>]*>.*?</article>', re.S)
+          for source in out.rglob('*.html'):
+              target = source.relative_to(out)
+              new = source.read_text()
+              if target.is_file() and target.as_posix() not in changed:
+                  old_article = article.search(target.read_text())
+                  assert old_article and article.search(new), target
+                  new = article.sub(lambda m: old_article[0], new, count=1)
+              else:
+                  assert target.as_posix() in changed, target
+                  target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(new)
+          for name in ('Assets/HH60M.png','Assets/find-community-folder.png','search/search_index.json','sitemap.xml','sitemap.xml.gz'):
+              dest = Path(name)
+              dest.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(out/name, dest)
+          assert Path('CNAME').read_text().strip() == 'docs.deltasimulations.ca'
+          handbook = Path('UH-60M/pilot-handbook')
+          articles = set(handbook.rglob('index.html')) - {handbook/'index.html'}
+          assert len(articles) == 49, len(articles)
+          pages = sorted(Path('UH-60M').rglob('index.html')) + [Path('faq/index.html')]
+          search = json.loads(Path('search/search_index.json').read_text())['docs']
+          indexed = {unquote(item['location'].split('#')[0]).rstrip('/') for item in search}
+          manifest, targets, nlinks = {}, set(), 0
+          for page in pages:
+              markup = BeautifulSoup(page.read_text(), 'html.parser')
+              body = markup.select_one('article')
+              assert body and body.h1, page
+              assert str(page.parent) in indexed, page
+              assert '<h1' in str(body), page
+              assert 'Coming soon' not in body.get_text(' ',strip=True) if str(page).startswith('UH-60M/') else True
+              for node,attr in [(a,'href') for a in body.select('a[href]')] + [(a,'src') for a in body.select('img[src]')] + [(a,'href') for a in markup.select('nav.md-nav a[href]')]:
+                  href = node[attr]
+                  u = urlsplit(href)
+                  if u.scheme or u.netloc:
+                      if u.hostname != 'docs.deltasimulations.ca': continue
+                  p = unquote(u.path)
+                  dest = (root/p.lstrip('/') if p.startswith('/') else page.parent/p) if p else page
+                  if dest.is_dir(): dest /= 'index.html'
+                  assert dest.is_file(), (page,href,dest)
+                  if u.fragment and dest.suffix == '.html' and node.find_parent('article'):
+                      assert ('id="' + unquote(u.fragment) + '"') in dest.read_text(), (page,href)
+                  if page == handbook/'index.html' and node.find_parent('article'): targets.add(dest.resolve())
+                  nlinks += 1
+          assert {p.resolve() for p in articles} <= targets
+          assert len(BeautifulSoup(Path('UH-60M/MFD/index.html').read_text(),'html.parser').select('article tbody tr')) == 9
+          print(f'Checked {len(articles)} handbook articles, {len(pages)} rendered pages and {nlinks} internal destinations.')
           PY
-          git add -- UH-60M/MFD/index.html search/search_index.json
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'UH-60M aircraft systems directory'
-          git push origin HEAD:refs/heads/release/aircraft-systems-directory
+          git add --all
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Publish H-60 systems, avionics and normal flight guide'
+          git push origin HEAD:refs/heads/release/h60-systems-and-flight-guide
+  verify-live:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/h60-systems-and-flight-guide
+          persist-credentials: false
+      - name: Verify public pages and search
+        run: |
+          python -m pip -q install beautifulsoup4
+          python - <<'PY'
+          import concurrent.futures, json, time, hashlib, re
+          from pathlib import Path
+          from urllib.parse import quote, unquote
+          from urllib.request import Request, urlopen
+          from bs4 import BeautifulSoup
+          host = 'https://docs.deltasimulations.ca/'
+          def request(path):
+              url = host + quote(path, safe='/') + '?handbook=032a1206&check=' + str(int(time.time())//10)
+              return urlopen(Request(url,headers={'User-Agent':'Delta-handbook-publication-check'}),timeout=20).read()
+          def content(raw):
+              article = BeautifulSoup(raw,'html.parser').select_one('article')
+              return ' '.join(article.stripped_strings)
+          def check(p):
+              route = p.parent.as_posix()+'/'
+              assert content(request(route)) == content(p.read_bytes()), route
+              return route
+          probe = Path('UH-60M/pilot-handbook/communications-and-navigation/com-radios-and-audio/index.html')
+          for attempt in range(120):
+              try:
+                  check(probe)
+                  break
+              except Exception:
+                  if attempt == 119: raise
+                  time.sleep(12)
+          pages = sorted(Path('UH-60M').rglob('index.html')) + [Path('faq/index.html')]
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+              for name in pool.map(check,pages): print(name, flush=True)
+          local_docs = json.loads(Path('search/search_index.json').read_text())['docs']
+          public_docs = json.loads(request('search/search_index.json'))['docs']
+          assert local_docs == public_docs
+          print(f'Public content matched on {len(pages)} pages. Public search index matched the release.')
+          PY
