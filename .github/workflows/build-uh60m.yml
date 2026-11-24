@@ -1,4 +1,4 @@
-name: H-60 simulator handbook publication
+name: H-60 cockpit reference publication
 on:
   push:
     branches: [build/uh60m-pages-release]
@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 032a12060416180567ed15bcd709cdd15fd44ce2
+          ref: 45afca2a8c1748d8925b00178fbe719bc6a684b5
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -22,7 +22,7 @@ jobs:
       - name: Preserve existing site and validate rendered guide
         run: |
           git fetch --no-tags https://github.com/Delta-Simulations/delta-simulations-docs.git refs/heads/gh-pages
-          test "$(git rev-parse FETCH_HEAD)" = 'd9503e5513d5a851e57a0753da23234d333cc763'
+          test "$(git rev-parse FETCH_HEAD)" = '49f727e76ee5fca9da6828005504531b917d4fe3'
           git switch --detach FETCH_HEAD
           python - <<'PY'
           import json, re, shutil, os
@@ -31,7 +31,7 @@ jobs:
           from bs4 import BeautifulSoup
           out = Path(os.environ['RUNNER_TEMP'])/'site'
           root = Path.cwd()
-          changed = set(["UH-60M/pilot-handbook/communications-and-navigation/com-radios-and-audio/index.html","UH-60M/pilot-handbook/communications-and-navigation/navigation-receivers-and-transponder/index.html","UH-60M/pilot-handbook/flight-displays/flight-director-and-mode-selectors/index.html","UH-60M/pilot-handbook/flight-displays/data-transfer-and-aircraft-status/index.html","UH-60M/pilot-handbook/flight-displays/crew-alerts-and-test-indications/index.html","UH-60M/pilot-handbook/communications-and-navigation/moving-map-and-route-entry/index.html","UH-60M/pilot-handbook/flight-displays/head-up-display-and-hover-cue/index.html","UH-60M/pilot-handbook/power-and-fuel/bleed-air-and-ground-power/index.html","UH-60M/pilot-handbook/airframe-and-instruments/rotor-brake-and-rundown/index.html","UH-60M/pilot-handbook/flight-deck/departure-cruise-and-arrival/index.html","UH-60M/pilot-handbook/flight-planning/weather-visibility-and-terrain/index.html","UH-60M/pilot-handbook/flight-planning/aircraft-limits-and-reference-speeds/index.html","UH-60M/Home/index.html","UH-60M/Aircraft and Systems/Multi Function Display/index.html","UH-60M/Aircraft and Systems/Display Systems/index.html","UH-60M/Aircraft and Systems/Simulated_Variants/index.html","faq/index.html","UH-60M/pilot-handbook/controls-and-lighting/helicopter-controller-profiles/index.html","UH-60M/pilot-handbook/controls-and-lighting/axis-calibration-and-troubleshooting/index.html","UH-60M/pilot-handbook/controls-and-lighting/rotor-trim-and-flight-assistance/index.html","UH-60M/pilot-handbook/controls-and-lighting/cockpit-and-cabin-lighting/index.html","UH-60M/pilot-handbook/controls-and-lighting/exterior-lights-and-searchlight/index.html","UH-60M/pilot-handbook/controls-and-lighting/pilot-seats-and-instrument-views/index.html","UH-60M/pilot-handbook/index.html","UH-60M/MFD/index.html","UH-60M/Aircraft and Systems/Manual Reference/index.html","UH-60M/Aircraft and Systems/Flight Controls/index.html","UH-60M/Aircraft and Systems/Powerplant and Fuel/index.html","UH-60M/Aircraft and Systems/Electrical and Hydraulic Systems/index.html","UH-60M/Aircraft and Systems/Utility and Mission Equipment/index.html","UH-60M/Procedures/Landing/index.html","UH-60M/Procedures/Parking and Shutdown/index.html","UH-60M/Procedures/Starting Engines/index.html","UH-60M/Procedures/Cockpit Equipment Checks/index.html","UH-60M/Procedures/Before_Start/index.html","UH-60M/Procedures/Quick Start Guide/index.html","UH-60M/Keybinds_Guide/index.html"])
+          changed = set(["UH-60M/Aircraft and Systems/Electrical and Hydraulic Systems/index.html","UH-60M/Aircraft and Systems/Multi Function Display/index.html","UH-60M/Aircraft and Systems/Powerplant and Fuel/index.html","UH-60M/Aircraft and Systems/Utility and Mission Equipment/index.html","UH-60M/Home/index.html","UH-60M/MFD/index.html","UH-60M/Procedures/Cockpit Equipment Checks/index.html","UH-60M/Procedures/Landing/index.html","UH-60M/Procedures/Starting Engines/index.html","UH-60M/pilot-handbook/airframe-and-instruments/cabin-heating-and-ventilation/index.html","UH-60M/pilot-handbook/airframe-and-instruments/main-and-tail-rotors/index.html","UH-60M/pilot-handbook/airframe-and-instruments/standby-flight-instruments/index.html","UH-60M/pilot-handbook/airframe-and-instruments/transmission-and-tail-drive/index.html","UH-60M/pilot-handbook/airframe-and-instruments/windshield-and-pitot-heat/index.html","UH-60M/pilot-handbook/controls-and-lighting/cockpit-and-cabin-lighting/index.html","UH-60M/pilot-handbook/controls-and-lighting/exterior-lights-and-searchlight/index.html","UH-60M/pilot-handbook/controls-and-lighting/pilot-seats-and-instrument-views/index.html","UH-60M/pilot-handbook/controls-and-lighting/rotor-trim-and-flight-assistance/index.html","UH-60M/pilot-handbook/flight-deck/parking-brake-and-tailwheel-lock/index.html","UH-60M/pilot-handbook/flight-deck/warning-panel-and-lamp-test/index.html","UH-60M/pilot-handbook/flight-displays/barometric-and-radar-altitude/index.html","UH-60M/pilot-handbook/flight-displays/cockpit-clock-and-elapsed-time/index.html","UH-60M/pilot-handbook/flight-displays/display-power-and-bezel-keys/index.html","UH-60M/pilot-handbook/flight-displays/engine-and-rotor-indications/index.html","UH-60M/pilot-handbook/flight-displays/navigation-display-and-flight-plan/index.html","UH-60M/pilot-handbook/flight-displays/primary-flight-display/index.html","UH-60M/pilot-handbook/flight-planning/airspeed-references-and-route-timing/index.html","UH-60M/pilot-handbook/flight-planning/cabin-loading-and-center-of-gravity/index.html","UH-60M/pilot-handbook/flight-planning/fuel-load-and-cruise-endurance/index.html","UH-60M/pilot-handbook/flight-planning/gross-weight-and-payload-stations/index.html","UH-60M/pilot-handbook/index.html","UH-60M/pilot-handbook/installation-and-equipment/doors-crew-and-external-equipment/index.html","UH-60M/pilot-handbook/installation-and-equipment/h-60-variant-selection/index.html","UH-60M/pilot-handbook/power-and-fuel/apron-and-airborne-start-states/index.html","UH-60M/pilot-handbook/power-and-fuel/auxiliary-power-unit/index.html","UH-60M/pilot-handbook/power-and-fuel/batteries-generators-and-display-power/index.html","UH-60M/pilot-handbook/power-and-fuel/engine-power-control-levers/index.html","UH-60M/pilot-handbook/power-and-fuel/hydraulic-leak-test-indications/index.html","UH-60M/pilot-handbook/power-and-fuel/main-fuel-tanks-and-boost-pumps/index.html","UH-60M/pilot-handbook/communications-and-navigation/com-radios-and-audio/index.html","UH-60M/pilot-handbook/communications-and-navigation/navigation-receivers-and-transponder/index.html","UH-60M/pilot-handbook/flight-displays/flight-director-and-mode-selectors/index.html","UH-60M/pilot-handbook/flight-displays/data-transfer-and-aircraft-status/index.html","UH-60M/pilot-handbook/flight-displays/crew-alerts-and-test-indications/index.html","UH-60M/pilot-handbook/communications-and-navigation/moving-map-and-route-entry/index.html","UH-60M/pilot-handbook/flight-displays/head-up-display-and-hover-cue/index.html","UH-60M/pilot-handbook/power-and-fuel/bleed-air-and-ground-power/index.html","UH-60M/pilot-handbook/airframe-and-instruments/rotor-brake-and-rundown/index.html","UH-60M/pilot-handbook/flight-deck/departure-cruise-and-arrival/index.html","UH-60M/pilot-handbook/flight-planning/weather-visibility-and-terrain/index.html","UH-60M/pilot-handbook/flight-planning/aircraft-limits-and-reference-speeds/index.html","UH-60M/Aircraft and Systems/Topic Index/index.html","UH-60M/Aircraft and Systems/Manual Reference/index.html","faq/index.html"])
           article = re.compile(r'<article\b[^>]*>.*?</article>', re.S)
           for source in out.rglob('*.html'):
               target = source.relative_to(out)
@@ -52,14 +52,30 @@ jobs:
           handbook = Path('UH-60M/pilot-handbook')
           articles = set(handbook.rglob('index.html')) - {handbook/'index.html'}
           assert len(articles) == 49, len(articles)
-          pages = sorted(Path('UH-60M').rglob('index.html')) + [Path('faq/index.html')]
+          legacy = Path('UH-60M/Aircraft and Systems/Manual Reference/index.html')
+          canonical = Path('UH-60M/Aircraft and Systems/Topic Index/index.html')
+          def canonical_link(raw):
+              soup = BeautifulSoup(raw,'html.parser')
+              refresh = soup.select_one('meta[http-equiv="refresh"]')
+              assert refresh and '../Topic%20Index/' in refresh.get('content','')
+              return soup.select_one('link[rel="canonical"]')['href']
+          assert canonical.is_file()
+          assert canonical_link(legacy.read_bytes()).endswith('/Topic%20Index/')
+          pages = sorted(set(Path('UH-60M').rglob('index.html')) - {legacy}) + [Path('faq/index.html')]
+          assert len(pages) == 68, len(pages)
           search = json.loads(Path('search/search_index.json').read_text())['docs']
           indexed = {unquote(item['location'].split('#')[0]).rstrip('/') for item in search}
+          disallowed = re.compile(r"(?:v?5\.2\.4|the (?:aircraft |technical )?manual\b|manual references?\b|operator[’']?s manual|TM 1-1520-280-10|Manual(?:%20| )Reference|in this (?:release|build|version)\b)", re.I)
+          assert not any(disallowed.search(json.dumps(item,ensure_ascii=False)) for item in search if item['location'].startswith('UH-60M/'))
           manifest, targets, nlinks = {}, set(), 0
           for page in pages:
               markup = BeautifulSoup(page.read_text(), 'html.parser')
               body = markup.select_one('article')
               assert body and body.h1, page
+              if page.parent.as_posix().startswith('UH-60M/'):
+                  assert not disallowed.search(str(markup)), page
+              elif page.as_posix() == 'faq/index.html':
+                  assert 'shields.io/github/v/release/Delta-Simulations/MSFS-H-60M' not in str(body)
               assert str(page.parent) in indexed, page
               assert '<h1' in str(body), page
               assert 'Coming soon' not in body.get_text(' ',strip=True) if str(page).startswith('UH-60M/') else True
@@ -81,8 +97,8 @@ jobs:
           print(f'Checked {len(articles)} handbook articles, {len(pages)} rendered pages and {nlinks} internal destinations.')
           PY
           git add --all
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Publish H-60 systems, avionics and normal flight guide'
-          git push origin HEAD:refs/heads/release/h60-systems-and-flight-guide
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Publish the revised H-60 handbook and topic index'
+          git push origin HEAD:refs/heads/release/h60-cockpit-references
   verify-live:
     needs: build
     runs-on: ubuntu-latest
@@ -90,7 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: release/h60-systems-and-flight-guide
+          ref: release/h60-cockpit-references
           persist-credentials: false
       - name: Verify public pages and search
         run: |
@@ -103,7 +119,7 @@ jobs:
           from bs4 import BeautifulSoup
           host = 'https://docs.deltasimulations.ca/'
           def request(path):
-              url = host + quote(path, safe='/') + '?handbook=032a1206&check=' + str(int(time.time())//10)
+              url = host + quote(path, safe='/') + '?handbook=45afca2a&check=' + str(int(time.time())//10)
               return urlopen(Request(url,headers={'User-Agent':'Delta-handbook-publication-check'}),timeout=20).read()
           def content(raw):
               article = BeautifulSoup(raw,'html.parser').select_one('article')
@@ -112,7 +128,7 @@ jobs:
               route = p.parent.as_posix()+'/'
               assert content(request(route)) == content(p.read_bytes()), route
               return route
-          probe = Path('UH-60M/pilot-handbook/communications-and-navigation/com-radios-and-audio/index.html')
+          probe = Path('UH-60M/Aircraft and Systems/Topic Index/index.html')
           for attempt in range(120):
               try:
                   check(probe)
@@ -120,7 +136,18 @@ jobs:
               except Exception:
                   if attempt == 119: raise
                   time.sleep(12)
-          pages = sorted(Path('UH-60M').rglob('index.html')) + [Path('faq/index.html')]
+          legacy = Path('UH-60M/Aircraft and Systems/Manual Reference/index.html')
+          canonical = Path('UH-60M/Aircraft and Systems/Topic Index/index.html')
+          def canonical_link(raw):
+              soup = BeautifulSoup(raw,'html.parser')
+              refresh = soup.select_one('meta[http-equiv="refresh"]')
+              assert refresh and '../Topic%20Index/' in refresh.get('content','')
+              return soup.select_one('link[rel="canonical"]')['href']
+          assert canonical.is_file()
+          assert canonical_link(legacy.read_bytes()).endswith('/Topic%20Index/')
+          pages = sorted(set(Path('UH-60M').rglob('index.html')) - {legacy}) + [Path('faq/index.html')]
+          assert len(pages) == 68, len(pages)
+          assert canonical_link(request(legacy.parent.as_posix()+'/')) == canonical_link(legacy.read_bytes())
           with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
               for name in pool.map(check,pages): print(name, flush=True)
           local_docs = json.loads(Path('search/search_index.json').read_text())['docs']
