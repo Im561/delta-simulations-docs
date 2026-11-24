@@ -1,51 +1,107 @@
-name: Build UH-60M documentation
+name: UH-60M pilot handbook
 on:
   push:
     branches: [build/uh60m-pages-release]
 permissions:
   contents: write
 jobs:
-  build:
+  handbook:
     if: github.repository == 'Im561/delta-simulations-docs'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 52e07697b2a207f6b0995dfe2980427645ac4a9d
+          ref: e45708e39263d36c5e0b1cc413ddd93dd30d37a3
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Build documentation
+      - name: Build handbook
         run: |
           python -m pip install 'mkdocs==1.6.1' 'mkdocs-material==9.7.5' mkdocs-glightbox mkdocs-awesome-pages-plugin
           python -m mkdocs build --site-dir "$RUNNER_TEMP/site"
-      - name: Check guide and custom domain
+      - name: Validate chapter content and links
         run: |
           python - <<'PY'
+          import os, re, json
           from html.parser import HTMLParser
           from pathlib import Path
-          from urllib.parse import unquote
-          import os
+          from urllib.parse import urlsplit, unquote
           site = Path(os.environ['RUNNER_TEMP']) / 'site'
-          home = site / 'UH-60M/Home'
+          handbook = site / 'UH-60M/pilot-handbook'
+          index = handbook / 'index.html'
+          pages = set(handbook.rglob('index.html')) - {index}
+          assert len(pages) == 37, len(pages)
           assert (site / 'CNAME').read_text().strip() == 'docs.deltasimulations.ca'
           class Links(HTMLParser):
-              links = []
+              def __init__(self):
+                  super().__init__()
+                  self.hrefs = []
               def handle_starttag(self, tag, attrs):
-                  if tag == 'a':
-                      self.links.append(unquote(dict(attrs).get('href', '')))
-          links = Links()
-          links.feed((home / 'index.html').read_text())
-          for slug in ('Display Systems', 'Electrical and Hydraulic Systems', 'Flight Controls', 'Manual Reference', 'Powerplant and Fuel', 'Utility and Mission Equipment'):
-              target = site / 'UH-60M/Aircraft and Systems' / slug
-              assert (target / 'index.html').is_file(), slug
-              assert any((home / href).resolve() == target.resolve() for href in links.links if href.endswith('/')), slug
+                  attrs = dict(attrs)
+                  if tag == 'a' and attrs.get('href'):
+                      self.hrefs.append(attrs['href'])
+          def article(text):
+              return re.search(r'<article\b[^>]*>.*?</article>', text, re.S)[0]
+          def check_page(page):
+              links = Links()
+              links.feed(article(page.read_text()))
+              targets = set()
+              for href in links.hrefs:
+                  u = urlsplit(href)
+                  if u.scheme and (u.netloc != 'docs.deltasimulations.ca' or u.scheme not in ('http','https')):
+                      continue
+                  rel = unquote(u.path)
+                  path = (site / rel.lstrip('/') if rel.startswith('/') else page.parent / rel) if rel else page
+                  path = path.resolve()
+                  if path.is_dir(): path /= 'index.html'
+                  assert path.is_file(), f'{page}: {href}'
+                  if u.fragment and path.suffix == '.html':
+                      assert ('id="' + unquote(u.fragment) + '"') in path.read_text(), (page, href)
+                  targets.add(path)
+              return targets
+          assert pages <= check_page(index)
+          for page in pages:
+              check_page(page)
+          search = json.loads((site/'search/search_index.json').read_text())['docs']
+          indexed = {item['location'].split('#')[0].rstrip('/') for item in search}
+          for page in pages:
+              assert str(page.parent.relative_to(site)) in indexed, page
+          print(f'{len(pages)} articles checked, including links, anchors and search entries.')
           PY
-      - name: Stage generated site on fork
+      - name: Stage publication
         run: |
           git fetch --no-tags https://github.com/Delta-Simulations/delta-simulations-docs.git refs/heads/gh-pages
+          test "$(git rev-parse FETCH_HEAD)" = '0bad2df2146583068c9a19fdd0e285c02274d9f2'
           git switch --detach FETCH_HEAD
-          cp -a "$RUNNER_TEMP/site/." .
+          python - <<'PY'
+          import re, shutil, os
+          from pathlib import Path
+          output = Path(os.environ['RUNNER_TEMP'])/'site'
+          article = re.compile(r'<article\b[^>]*>.*?</article>', re.S)
+          for path in output.rglob('*.html'):
+              target = path.relative_to(output)
+              new = path.read_text()
+              if target.is_file():
+                  old = target.read_text()
+                  previous, current = article.search(old), article.search(new)
+                  if not previous or not current:
+                      raise ValueError(target)
+                  body = previous[0]
+                  if target.as_posix() == 'UH-60M/Home/index.html':
+                      link = re.search(r'<p>Open the <a href="[^"]+">UH-60M Pilot Handbook</a>.*?</p>', current[0], re.S)[0]
+                      heading = '<h2 id="systems-reference">Systems reference</h2>'
+                      assert heading in body and link not in body
+                      body = body.replace(heading, heading + '\n' + link)
+                  elif target.as_posix() == 'UH-60M/Aircraft and Systems/Manual Reference/index.html':
+                      body = current[0]
+                  new = article.sub(lambda _: body, new, count=1)
+              else:
+                  assert str(target).startswith('UH-60M/pilot-handbook/'), target
+                  target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(new)
+          for name in ['search/search_index.json','sitemap.xml','sitemap.xml.gz']:
+              shutil.copyfile(output/name, name)
+          PY
           git add --all
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Publish UH-60M systems reference'
-          git push origin HEAD:refs/heads/publish/uh60m-cockpit-pages
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'UH-60M pilot handbook'
+          git push origin HEAD:refs/heads/release/uh60m-pilot-handbook
